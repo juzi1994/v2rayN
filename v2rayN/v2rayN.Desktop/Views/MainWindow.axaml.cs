@@ -6,11 +6,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using DialogHostAvalonia;
 using ReactiveUI;
 using Splat;
 using System.ComponentModel;
 using System.Reactive.Disposables;
 using v2rayN.Desktop.Common;
+using v2rayN.Desktop.Handler;
 
 namespace v2rayN.Desktop.Views
 {
@@ -18,12 +20,14 @@ namespace v2rayN.Desktop.Views
     {
         private static Config _config;
         private WindowNotificationManager? _manager;
+        private CheckUpdateView? _checkUpdateView;
+        private BackupAndRestoreView? _backupAndRestoreView;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            _config = LazyConfig.Instance.Config;
+            _config = AppHandler.Instance.Config;
             _manager = new WindowNotificationManager(TopLevel.GetTopLevel(this)) { MaxItems = 3, Position = NotificationPosition.BottomRight };
 
             //ThreadPool.RegisterWaitForSingleObject(App.ProgramStarted, OnProgramStarted, null, -1, false);
@@ -33,9 +37,12 @@ namespace v2rayN.Desktop.Views
             menuSettingsSetUWP.Click += menuSettingsSetUWP_Click;
             menuPromotion.Click += menuPromotion_Click;
             menuClose.Click += menuClose_Click;
+            menuCheckUpdate.Click += MenuCheckUpdate_Click;
+            menuBackupAndRestore.Click += MenuBackupAndRestore_Click;
 
+            var IsAdministrator = Utils.IsAdministrator();
             MessageBus.Current.Listen<string>(Global.CommandSendSnackMsg).Subscribe(x => DelegateSnackMsg(x));
-            ViewModel = new MainWindowViewModel(UpdateViewHandler);
+            ViewModel = new MainWindowViewModel(IsAdministrator, UpdateViewHandler);
             Locator.CurrentMutable.RegisterLazySingleton(() => ViewModel, typeof(MainWindowViewModel));
 
             //WindowsHandler.Instance.RegisterGlobalHotkey(_config, OnHotkeyHandler, null);
@@ -71,13 +78,6 @@ namespace v2rayN.Desktop.Views
                 this.BindCommand(ViewModel, vm => vm.RebootAsAdminCmd, v => v.menuRebootAsAdmin).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.ClearServerStatisticsCmd, v => v.menuClearServerStatistics).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.OpenTheFileLocationCmd, v => v.menuOpenTheFileLocation).DisposeWith(disposables);
-
-                //check update
-                this.BindCommand(ViewModel, vm => vm.CheckUpdateNCmd, v => v.menuCheckUpdateN).DisposeWith(disposables);
-                this.BindCommand(ViewModel, vm => vm.CheckUpdateXrayCoreCmd, v => v.menuCheckUpdateXrayCore).DisposeWith(disposables);
-                this.BindCommand(ViewModel, vm => vm.CheckUpdateClashMetaCoreCmd, v => v.menuCheckUpdateMihomoCore).DisposeWith(disposables);
-                this.BindCommand(ViewModel, vm => vm.CheckUpdateSingBoxCoreCmd, v => v.menuCheckUpdateSingBoxCore).DisposeWith(disposables);
-                this.BindCommand(ViewModel, vm => vm.CheckUpdateGeoCmd, v => v.menuCheckUpdateGeo).DisposeWith(disposables);
 
                 this.BindCommand(ViewModel, vm => vm.ReloadCmd, v => v.menuReload).DisposeWith(disposables);
                 this.OneWayBind(ViewModel, vm => vm.BlReloadEnabled, v => v.menuReload.IsEnabled).DisposeWith(disposables);
@@ -118,32 +118,16 @@ namespace v2rayN.Desktop.Views
                 }
             });
 
+            this.Title = $"{Utils.GetVersion()} - {(IsAdministrator ? ResUI.RunAsAdmin : ResUI.NotRunAsAdmin)}";
             if (Utils.IsWindows())
             {
-                var IsAdministrator = false;//WindowsUtils.IsAdministrator();
-                ViewModel.IsAdministrator = IsAdministrator;
-                this.Title = $"{Utils.GetVersion()} - {(IsAdministrator ? ResUI.RunAsAdmin : ResUI.NotRunAsAdmin)}";
-                if (_config.tunModeItem.enableTun)
-                {
-                    if (IsAdministrator)
-                    {
-                        ViewModel.EnableTun = true;
-                    }
-                    else
-                    {
-                        _config.tunModeItem.enableTun = ViewModel.EnableTun = false;
-                    }
-                }
+                menuGlobalHotkeySetting.IsVisible = false;
             }
             else
             {
-                ViewModel.IsAdministrator = true;
-                this.Title = $"{Utils.GetVersion()}";
                 menuRebootAsAdmin.IsVisible = false;
                 menuSettingsSetUWP.IsVisible = false;
                 menuGlobalHotkeySetting.IsVisible = false;
-                menuOpenTheFileLocation.IsVisible = false;
-                cmbSystemProxy.IsVisible = false;
                 if (_config.tunModeItem.enableTun)
                 {
                     ViewModel.EnableTun = true;
@@ -272,12 +256,18 @@ namespace v2rayN.Desktop.Views
 
                 case EViewAction.UpdateSysProxy:
                     if (obj is null) return false;
-                    //  await SysProxyHandler.UpdateSysProxy(_config, (bool)obj);
+                    await SysProxyHandler.UpdateSysProxy(_config, (bool)obj);
                     break;
 
                 case EViewAction.AddServerViaClipboard:
                     var clipboardData = await AvaUtils.GetClipboardData(this);
                     ViewModel?.AddServerViaClipboardAsync(clipboardData);
+                    break;
+
+                case EViewAction.AdjustMainLvColWidth:
+                    Dispatcher.UIThread.Post(() =>
+                       Locator.Current.GetService<ProfilesViewModel>()?.AutofitColumnWidthAsync(),
+                        DispatcherPriority.Default);
                     break;
             }
 
@@ -377,6 +367,18 @@ namespace v2rayN.Desktop.Views
             //ViewModel?.ScanScreenTaskAsync(result);
         }
 
+        private void MenuCheckUpdate_Click(object? sender, RoutedEventArgs e)
+        {
+            _checkUpdateView ??= new CheckUpdateView();
+            DialogHost.Show(_checkUpdateView);
+        }
+
+        private void MenuBackupAndRestore_Click(object? sender, RoutedEventArgs e)
+        {
+            _backupAndRestoreView ??= new BackupAndRestoreView(this);
+            DialogHost.Show(_backupAndRestoreView);
+        }
+
         #endregion Event
 
         #region UI
@@ -446,15 +448,13 @@ namespace v2rayN.Desktop.Views
         {
             var coreInfo = CoreInfoHandler.Instance.GetCoreInfo();
             foreach (var it in coreInfo
-                .Where(t => t.coreType != ECoreType.v2fly
-                            && t.coreType != ECoreType.clash
-                            && t.coreType != ECoreType.clash_meta
-                            && t.coreType != ECoreType.hysteria))
+                .Where(t => t.CoreType != ECoreType.v2fly
+                            && t.CoreType != ECoreType.hysteria))
             {
                 var item = new MenuItem()
                 {
-                    Tag = it.coreUrl.Replace(@"/releases", ""),
-                    Header = string.Format(ResUI.menuWebsiteItem, it.coreType.ToString().Replace("_", " ")).UpperFirstChar()
+                    Tag = it.Url?.Replace(@"/releases", ""),
+                    Header = string.Format(ResUI.menuWebsiteItem, it.CoreType.ToString().Replace("_", " ")).UpperFirstChar()
                 };
                 item.Click += MenuItem_Click;
                 menuHelp.Items.Add(item);
@@ -465,7 +465,7 @@ namespace v2rayN.Desktop.Views
         {
             if (sender is MenuItem item)
             {
-                Utils.ProcessStart(item.Tag.ToString());
+                Utils.ProcessStart(item.Tag?.ToString());
             }
         }
 

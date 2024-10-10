@@ -1,13 +1,13 @@
-﻿namespace ServiceLib.Handler.CoreConfig
+﻿namespace ServiceLib.Services.CoreConfig
 {
     /// <summary>
     /// Core configuration file processing class
     /// </summary>
-    public class CoreConfigClash
+    public class CoreConfigClashService
     {
         private Config _config;
 
-        public CoreConfigClash(Config config)
+        public CoreConfigClashService(Config config)
         {
             _config = config;
         }
@@ -43,7 +43,7 @@
                 }
 
                 string addressFileName = node.address;
-                if (string.IsNullOrEmpty(addressFileName))
+                if (Utils.IsNullOrEmpty(addressFileName))
                 {
                     msg = ResUI.FailedGetDefaultConfiguration;
                     return -1;
@@ -64,6 +64,12 @@
                 var txtFile = File.ReadAllText(addressFileName);
                 txtFile = txtFile.Replace(tagYamlStr1, tagYamlStr2);
 
+                //YAML anchors
+                if (txtFile.Contains("<<:") && txtFile.Contains("*") && txtFile.Contains("&"))
+                {
+                    txtFile = YamlUtils.PreprocessYaml(txtFile);
+                }
+
                 var fileContent = YamlUtils.FromYaml<Dictionary<string, object>>(txtFile);
                 if (fileContent == null)
                 {
@@ -72,14 +78,14 @@
                 }
 
                 //port
-                fileContent["port"] = LazyConfig.Instance.GetLocalPort(EInboundProtocol.http);
+                fileContent["port"] = AppHandler.Instance.GetLocalPort(EInboundProtocol.http);
                 //socks-port
-                fileContent["socks-port"] = LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks);
+                fileContent["socks-port"] = AppHandler.Instance.GetLocalPort(EInboundProtocol.socks);
                 //log-level
                 fileContent["log-level"] = GetLogLevel(_config.coreBasicItem.loglevel);
 
                 //external-controller
-                fileContent["external-controller"] = $"{Global.Loopback}:{LazyConfig.Instance.StatePort2}";
+                fileContent["external-controller"] = $"{Global.Loopback}:{AppHandler.Instance.StatePort2}";
                 //allow-lan
                 if (_config.inbound[0].allowLANConn)
                 {
@@ -111,7 +117,7 @@
                 if (_config.tunModeItem.enableTun)
                 {
                     string tun = Utils.GetEmbedText(Global.ClashTunYaml);
-                    if (!string.IsNullOrEmpty(tun))
+                    if (Utils.IsNotEmpty(tun))
                     {
                         var tunContent = YamlUtils.FromYaml<Dictionary<string, object>>(tun);
                         if (tunContent != null)

@@ -17,10 +17,9 @@
     FontFamily="{x:Static conv:MaterialDesignFonts.MyFont}"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
+    Style="{StaticResource WindowGlobal}"
     TextElement.FontFamily="{x:Static conv:MaterialDesignFonts.MyFont}"
     TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-    TextOptions.TextFormattingMode="Display"
-    TextOptions.TextRenderingMode="Auto"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Window.Resources>
@@ -58,6 +57,7 @@
 
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -281,6 +281,24 @@
                     materialDesign:HintAssist.Hint="{x:Static resx:ResUI.LvPrevProfileTip}"
                     AcceptsReturn="True"
                     Style="{StaticResource MyOutlinedTextBox}" />
+
+                <TextBlock
+                    Grid.Row="11"
+                    Grid.Column="0"
+                    Margin="4"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource ToolbarTextBlock}"
+                    Text="{x:Static resx:ResUI.TbPreSocksPort4Sub}" />
+                <TextBox
+                    x:Name="txtPreSocksPort"
+                    Grid.Row="11"
+                    Grid.Column="1"
+                    Margin="4"
+                    HorizontalAlignment="Left"
+                    materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TipPreSocksPort}"
+                    AcceptsReturn="True"
+                    Style="{StaticResource MyOutlinedTextBox}"
+                    ToolTip="{x:Static resx:ResUI.TipPreSocksPort}" />
             </Grid>
         </ScrollViewer>
     </DockPanel>

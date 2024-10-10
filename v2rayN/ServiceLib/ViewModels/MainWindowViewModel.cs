@@ -13,7 +13,7 @@ namespace ServiceLib.ViewModels
     {
         #region private prop
 
-        private CoreHandler _coreHandler;
+        private bool _isAdministrator { get; set; }
 
         #endregion private prop
 
@@ -71,13 +71,6 @@ namespace ServiceLib.ViewModels
         public ReactiveCommand<Unit, Unit> ClearServerStatisticsCmd { get; }
         public ReactiveCommand<Unit, Unit> OpenTheFileLocationCmd { get; }
 
-        //CheckUpdate
-        public ReactiveCommand<Unit, Unit> CheckUpdateNCmd { get; }
-
-        public ReactiveCommand<Unit, Unit> CheckUpdateXrayCoreCmd { get; }
-        public ReactiveCommand<Unit, Unit> CheckUpdateClashMetaCoreCmd { get; }
-        public ReactiveCommand<Unit, Unit> CheckUpdateSingBoxCoreCmd { get; }
-        public ReactiveCommand<Unit, Unit> CheckUpdateGeoCmd { get; }
         public ReactiveCommand<Unit, Unit> ReloadCmd { get; }
 
         [Reactive]
@@ -146,17 +139,16 @@ namespace ServiceLib.ViewModels
         [Reactive]
         public int TabMainSelectedIndex { get; set; }
 
-        public bool IsAdministrator { get; set; }
-
         #endregion UI
 
         #region Init
 
-        public MainWindowViewModel(Func<EViewAction, object?, Task<bool>>? updateView)
+        public MainWindowViewModel(bool isAdministrator, Func<EViewAction, object?, Task<bool>>? updateView)
         {
-            _config = LazyConfig.Instance.Config;
-            _noticeHandler = Locator.Current.GetService<NoticeHandler>();
+            _config = AppHandler.Instance.Config;
+
             _updateView = updateView;
+            _isAdministrator = isAdministrator;
 
             MessageBus.Current.Listen<string>(Global.CommandRefreshProfiles).Subscribe(async x => await _updateView?.Invoke(EViewAction.DispatcherRefreshServersBiz, null));
 
@@ -164,6 +156,16 @@ namespace ServiceLib.ViewModels
             SelectedServer = new();
 
             Init();
+
+            _config.uiItem.showInTaskbar = true;
+            if (_config.tunModeItem.enableTun && _isAdministrator)
+            {
+                EnableTun = true;
+            }
+            else
+            {
+                _config.tunModeItem.enableTun = EnableTun = false;
+            }
 
             #region WhenAnyValue && ReactiveCommand
 
@@ -189,49 +191,49 @@ namespace ServiceLib.ViewModels
                   .Subscribe(c => DoEnableTun(c));
 
             //servers
-            AddVmessServerCmd = ReactiveCommand.Create(() =>
+            AddVmessServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.VMess);
+                await AddServerAsync(true, EConfigType.VMess);
             });
-            AddVlessServerCmd = ReactiveCommand.Create(() =>
+            AddVlessServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.VLESS);
+                await AddServerAsync(true, EConfigType.VLESS);
             });
-            AddShadowsocksServerCmd = ReactiveCommand.Create(() =>
+            AddShadowsocksServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Shadowsocks);
+                await AddServerAsync(true, EConfigType.Shadowsocks);
             });
-            AddSocksServerCmd = ReactiveCommand.Create(() =>
+            AddSocksServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Socks);
+                await AddServerAsync(true, EConfigType.SOCKS);
             });
-            AddHttpServerCmd = ReactiveCommand.Create(() =>
+            AddHttpServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Http);
+                await AddServerAsync(true, EConfigType.HTTP);
             });
-            AddTrojanServerCmd = ReactiveCommand.Create(() =>
+            AddTrojanServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Trojan);
+                await AddServerAsync(true, EConfigType.Trojan);
             });
-            AddHysteria2ServerCmd = ReactiveCommand.Create(() =>
+            AddHysteria2ServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Hysteria2);
+                await AddServerAsync(true, EConfigType.Hysteria2);
             });
-            AddTuicServerCmd = ReactiveCommand.Create(() =>
+            AddTuicServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Tuic);
+                await AddServerAsync(true, EConfigType.TUIC);
             });
-            AddWireguardServerCmd = ReactiveCommand.Create(() =>
+            AddWireguardServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Wireguard);
+                await AddServerAsync(true, EConfigType.WireGuard);
             });
-            AddCustomServerCmd = ReactiveCommand.Create(() =>
+            AddCustomServerCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerAsync(true, EConfigType.Custom);
+                await AddServerAsync(true, EConfigType.Custom);
             });
-            AddServerViaClipboardCmd = ReactiveCommand.Create(() =>
+            AddServerViaClipboardCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                AddServerViaClipboardAsync(null);
+                await AddServerViaClipboardAsync(null);
             });
             AddServerViaScanCmd = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -239,87 +241,64 @@ namespace ServiceLib.ViewModels
             });
 
             //Subscription
-            SubSettingCmd = ReactiveCommand.Create(() =>
+            SubSettingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SubSettingAsync();
+                await SubSettingAsync();
             });
 
-            SubUpdateCmd = ReactiveCommand.Create(() =>
+            SubUpdateCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                UpdateSubscriptionProcess("", false);
+                await UpdateSubscriptionProcess("", false);
             });
-            SubUpdateViaProxyCmd = ReactiveCommand.Create(() =>
+            SubUpdateViaProxyCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                UpdateSubscriptionProcess("", true);
+                await UpdateSubscriptionProcess("", true);
             });
-            SubGroupUpdateCmd = ReactiveCommand.Create(() =>
+            SubGroupUpdateCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                UpdateSubscriptionProcess(_config.subIndexId, false);
+                await UpdateSubscriptionProcess(_config.subIndexId, false);
             });
-            SubGroupUpdateViaProxyCmd = ReactiveCommand.Create(() =>
+            SubGroupUpdateViaProxyCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                UpdateSubscriptionProcess(_config.subIndexId, true);
+                await UpdateSubscriptionProcess(_config.subIndexId, true);
             });
 
             //Setting
-            OptionSettingCmd = ReactiveCommand.Create(() =>
+            OptionSettingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                OptionSettingAsync();
+                await OptionSettingAsync();
             });
-            RoutingSettingCmd = ReactiveCommand.Create(() =>
+            RoutingSettingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                RoutingSettingAsync();
+                await RoutingSettingAsync();
             });
-            DNSSettingCmd = ReactiveCommand.Create(() =>
+            DNSSettingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                DNSSettingAsync();
+                await DNSSettingAsync();
             });
             GlobalHotkeySettingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (await _updateView?.Invoke(EViewAction.GlobalHotkeySettingWindow, null) == true)
                 {
-                    _noticeHandler?.Enqueue(ResUI.OperationSuccess);
+                    NoticeHandler.Instance.Enqueue(ResUI.OperationSuccess);
                 }
             });
-            RebootAsAdminCmd = ReactiveCommand.Create(() =>
+            RebootAsAdminCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                RebootAsAdmin();
+                await RebootAsAdmin();
             });
-            ClearServerStatisticsCmd = ReactiveCommand.Create(() =>
+            ClearServerStatisticsCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                StatisticsHandler.Instance.ClearAllServerStatistics();
-                RefreshServers();
+                await ClearServerStatistics();
             });
-            OpenTheFileLocationCmd = ReactiveCommand.Create(() =>
+            OpenTheFileLocationCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                Utils.ProcessStart("Explorer", $"/select,{Utils.GetConfigPath()}");
-            });
-
-            //CheckUpdate
-            CheckUpdateNCmd = ReactiveCommand.Create(() =>
-            {
-                CheckUpdateN();
-            });
-            CheckUpdateXrayCoreCmd = ReactiveCommand.Create(() =>
-            {
-                CheckUpdateCore(ECoreType.Xray, null);
-            });
-            CheckUpdateClashMetaCoreCmd = ReactiveCommand.Create(() =>
-            {
-                CheckUpdateCore(ECoreType.mihomo, false);
-            });
-            CheckUpdateSingBoxCoreCmd = ReactiveCommand.Create(() =>
-            {
-                CheckUpdateCore(ECoreType.sing_box, null);
-            });
-            CheckUpdateGeoCmd = ReactiveCommand.Create(() =>
-            {
-                CheckUpdateGeo();
+                await OpenTheFileLocation();
             });
 
-            ReloadCmd = ReactiveCommand.Create(() =>
+            ReloadCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                Reload();
+                await Reload();
             });
 
             NotifyLeftClickCmd = ReactiveCommand.CreateFromTask(async () =>
@@ -328,36 +307,33 @@ namespace ServiceLib.ViewModels
             });
 
             //System proxy
-            SystemProxyClearCmd = ReactiveCommand.Create(() =>
+            SystemProxyClearCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SetListenerType(ESysProxyType.ForcedClear);
+                await SetListenerType(ESysProxyType.ForcedClear);
             });
-            SystemProxySetCmd = ReactiveCommand.Create(() =>
+            SystemProxySetCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SetListenerType(ESysProxyType.ForcedChange);
+                await SetListenerType(ESysProxyType.ForcedChange);
             });
-            SystemProxyNothingCmd = ReactiveCommand.Create(() =>
+            SystemProxyNothingCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SetListenerType(ESysProxyType.Unchanged);
+                await SetListenerType(ESysProxyType.Unchanged);
             });
-            SystemProxyPacCmd = ReactiveCommand.Create(() =>
+            SystemProxyPacCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SetListenerType(ESysProxyType.Pac);
+                await SetListenerType(ESysProxyType.Pac);
             });
 
             #endregion WhenAnyValue && ReactiveCommand
 
             AutoHideStartup();
-
-            _config.uiItem.showInTaskbar = true;
         }
 
         private void Init()
         {
             ConfigHandler.InitBuiltinRouting(_config);
             ConfigHandler.InitBuiltinDNS(_config);
-            _coreHandler = new CoreHandler(_config, UpdateHandler);
-            Locator.CurrentMutable.RegisterLazySingleton(() => _coreHandler, typeof(CoreHandler));
+            CoreHandler.Instance.Init(_config, UpdateHandler);
 
             if (_config.guiItem.enableStatistics)
             {
@@ -378,20 +354,16 @@ namespace ServiceLib.ViewModels
 
         private void UpdateHandler(bool notify, string msg)
         {
-            if (!_config.uiItem.showInTaskbar)
-            {
-                return;
-            }
-            _noticeHandler?.SendMessage(msg);
+            NoticeHandler.Instance.SendMessage(msg);
             if (notify)
             {
-                _noticeHandler?.Enqueue(msg);
+                NoticeHandler.Instance.Enqueue(msg);
             }
         }
 
         private void UpdateTaskHandler(bool success, string msg)
         {
-            _noticeHandler?.SendMessage(msg);
+            NoticeHandler.Instance.SendMessageEx(msg);
             if (success)
             {
                 var indexIdOld = _config.indexId;
@@ -402,7 +374,7 @@ namespace ServiceLib.ViewModels
                 }
                 if (_config.uiItem.enableAutoAdjustMainLvColWidth)
                 {
-                    Locator.Current.GetService<ProfilesViewModel>()?.AutofitColumnWidthAsync();
+                    _updateView?.Invoke(EViewAction.AdjustMainLvColWidth, null);
                 }
             }
         }
@@ -446,14 +418,32 @@ namespace ServiceLib.ViewModels
                 ProfileExHandler.Instance.SaveTo();
                 StatisticsHandler.Instance.SaveTo();
                 StatisticsHandler.Instance.Close();
-                _coreHandler.CoreStop();
+                CoreHandler.Instance.CoreStop();
 
                 Logging.SaveLog("MyAppExit End");
             }
             catch { }
             finally
             {
-                await _updateView?.Invoke(EViewAction.Shutdown, null);
+                _updateView?.Invoke(EViewAction.Shutdown, null);
+            }
+        }
+
+        public async Task UpgradeApp(string fileName)
+        {
+            Process process = new()
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "AmazTool",
+                    Arguments = fileName.AppendQuotes(),
+                    WorkingDirectory = Utils.StartupPath()
+                }
+            };
+            process.Start();
+            if (process.Id > 0)
+            {
+                await MyAppExitAsync(false);
             }
         }
 
@@ -486,7 +476,7 @@ namespace ServiceLib.ViewModels
 
         private void RefreshServersMenu()
         {
-            var lstModel = LazyConfig.Instance.ProfileItems(_config.subIndexId, "");
+            var lstModel = AppHandler.Instance.ProfileItems(_config.subIndexId, "");
 
             _servers.Clear();
             if (lstModel.Count > _config.guiItem.trayMenuServersLimit)
@@ -559,7 +549,7 @@ namespace ServiceLib.ViewModels
             {
                 RefreshSubscriptions();
                 RefreshServers();
-                _noticeHandler?.Enqueue(string.Format(ResUI.SuccessfullyImportedServerViaClipboard, ret));
+                NoticeHandler.Instance.Enqueue(string.Format(ResUI.SuccessfullyImportedServerViaClipboard, ret));
             }
         }
 
@@ -567,7 +557,7 @@ namespace ServiceLib.ViewModels
         {
             if (Utils.IsNullOrEmpty(result))
             {
-                _noticeHandler?.Enqueue(ResUI.NoValidQRcodeFound);
+                NoticeHandler.Instance.Enqueue(ResUI.NoValidQRcodeFound);
             }
             else
             {
@@ -576,7 +566,7 @@ namespace ServiceLib.ViewModels
                 {
                     RefreshSubscriptions();
                     RefreshServers();
-                    _noticeHandler?.Enqueue(ResUI.SuccessfullyImportedServerViaScan);
+                    NoticeHandler.Instance.Enqueue(ResUI.SuccessfullyImportedServerViaScan);
                 }
             }
         }
@@ -591,10 +581,10 @@ namespace ServiceLib.ViewModels
             {
                 return;
             }
-            var item = LazyConfig.Instance.GetProfileItem(indexId);
+            var item = AppHandler.Instance.GetProfileItem(indexId);
             if (item is null)
             {
-                _noticeHandler?.Enqueue(ResUI.PleaseSelectServer);
+                NoticeHandler.Instance.Enqueue(ResUI.PleaseSelectServer);
                 return;
             }
 
@@ -622,22 +612,17 @@ namespace ServiceLib.ViewModels
             SetDefaultServer(SelectedServer.ID);
         }
 
-        public void TestServerAvailability()
+        public async Task TestServerAvailability()
         {
             var item = ConfigHandler.GetDefaultServer(_config);
             if (item == null)
             {
                 return;
             }
-            (new UpdateHandler()).RunAvailabilityCheck(async (bool success, string msg) =>
+            await (new UpdateService()).RunAvailabilityCheck(async (bool success, string msg) =>
             {
-                _noticeHandler?.SendMessage(msg, true);
-
-                if (!_config.uiItem.showInTaskbar)
-                {
-                    return;
-                }
-                await _updateView?.Invoke(EViewAction.DispatcherServerAvailability, msg);
+                NoticeHandler.Instance.SendMessageEx(msg);
+                _updateView?.Invoke(EViewAction.DispatcherServerAvailability, msg);
             });
         }
 
@@ -658,9 +643,9 @@ namespace ServiceLib.ViewModels
             }
         }
 
-        public void UpdateSubscriptionProcess(string subId, bool blProxy)
+        public async Task UpdateSubscriptionProcess(string subId, bool blProxy)
         {
-            (new UpdateHandler()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
+            (new UpdateService()).UpdateSubscriptionProcess(_config, subId, blProxy, UpdateTaskHandler);
         }
 
         #endregion Subscription
@@ -698,7 +683,7 @@ namespace ServiceLib.ViewModels
             }
         }
 
-        private void RebootAsAdmin()
+        private async Task RebootAsAdmin()
         {
             ProcessStartInfo startInfo = new()
             {
@@ -716,120 +701,42 @@ namespace ServiceLib.ViewModels
             catch { }
         }
 
+        private async Task ClearServerStatistics()
+        {
+            StatisticsHandler.Instance.ClearAllServerStatistics();
+            RefreshServers();
+        }
+
+        private async Task OpenTheFileLocation()
+        {
+            if (Utils.IsWindows())
+            {
+                Utils.ProcessStart("Explorer", $"/select,{Utils.GetConfigPath()}");
+            }
+            else if (Utils.IsLinux())
+            {
+                Utils.ProcessStart("nautilus", Utils.GetConfigPath());
+            }
+        }
+
         #endregion Setting
-
-        #region CheckUpdate
-
-        private void CheckUpdateN()
-        {
-            //Check for standalone windows .Net version
-            if (Utils.IsWindows() 
-                && File.Exists(Path.Combine(Utils.StartupPath(), "wpfgfx_cor3.dll"))
-                && File.Exists(Path.Combine(Utils.StartupPath(), "D3DCompiler_47_cor3.dll"))
-                )
-            {
-                _noticeHandler?.SendMessageAndEnqueue(ResUI.UpdateStandalonePackageTip);
-                return;
-            }
-
-            void _updateUI(bool success, string msg)
-            {
-                _noticeHandler?.SendMessage(msg);
-                if (success)
-                {
-                    try
-                    {
-                        var fileName = msg;
-                        Process process = new()
-                        {
-                            StartInfo = new ProcessStartInfo
-                            {
-                                FileName = "v2rayUpgrade",
-                                Arguments = fileName.AppendQuotes(),
-                                WorkingDirectory = Utils.StartupPath()
-                            }
-                        };
-                        process.Start();
-                        if (process.Id > 0)
-                        {
-                            MyAppExitAsync(false);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _noticeHandler?.SendMessage(ex.Message);
-                    }
-                }
-            }
-            (new UpdateHandler()).CheckUpdateGuiN(_config, _updateUI, _config.guiItem.checkPreReleaseUpdate);
-        }
-
-        private void CheckUpdateCore(ECoreType type, bool? preRelease)
-        {
-            void _updateUI(bool success, string msg)
-            {
-                _noticeHandler?.SendMessage(msg);
-                if (success)
-                {
-                    CloseCore();
-
-                    string fileName = Utils.GetTempPath(Utils.GetDownloadFileName(msg));
-                    string toPath = Utils.GetBinPath("", type.ToString());
-
-                    if (fileName.Contains(".tar.gz"))
-                    {
-                        //It's too complicated to unzip. TODO
-                    }
-                    else if (fileName.Contains(".gz"))
-                    {
-                        FileManager.UncompressedFile(fileName, toPath, type.ToString());
-                    }
-                    else
-                    {
-                        FileManager.ZipExtractToFile(fileName, toPath, _config.guiItem.ignoreGeoUpdateCore ? "geo" : "");
-                    }
-
-                    _noticeHandler?.SendMessage(ResUI.MsgUpdateV2rayCoreSuccessfullyMore);
-
-                    Reload();
-
-                    _noticeHandler?.SendMessage(ResUI.MsgUpdateV2rayCoreSuccessfully);
-
-                    if (File.Exists(fileName))
-                    {
-                        File.Delete(fileName);
-                    }
-                }
-            }
-            (new UpdateHandler()).CheckUpdateCore(type, _config, _updateUI, preRelease ?? _config.guiItem.checkPreReleaseUpdate);
-        }
-
-        private void CheckUpdateGeo()
-        {
-            (new UpdateHandler()).UpdateGeoFileAll(_config, UpdateTaskHandler);
-        }
-
-        #endregion CheckUpdate
 
         #region core job
 
-        public void Reload()
+        public async Task Reload()
         {
             BlReloadEnabled = false;
 
-            LoadCore().ContinueWith(async task =>
-            {
-                TestServerAvailability();
-
-                await _updateView?.Invoke(EViewAction.DispatcherReload, null);
-            });
+            await LoadCore();
+            await TestServerAvailability();
+            _updateView?.Invoke(EViewAction.DispatcherReload, null);
         }
 
         public void ReloadResult()
         {
             ChangeSystemProxyStatusAsync(_config.systemProxyItem.sysProxyType, false);
             BlReloadEnabled = true;
-            ShowClashUI = _config.IsRunningCore(ECoreType.clash);
+            ShowClashUI = _config.IsRunningCore(ECoreType.sing_box);
             if (ShowClashUI)
             {
                 Locator.Current.GetService<ClashProxiesViewModel>()?.ProxiesReload();
@@ -848,24 +755,24 @@ namespace ServiceLib.ViewModels
                 //}
 
                 var node = ConfigHandler.GetDefaultServer(_config);
-                _coreHandler.LoadCore(node);
+                CoreHandler.Instance.LoadCore(node);
             });
         }
 
-        private void CloseCore()
+        public void CloseCore()
         {
             ConfigHandler.SaveConfig(_config, false);
 
             ChangeSystemProxyStatusAsync(ESysProxyType.ForcedClear, false);
 
-            _coreHandler.CoreStop();
+            CoreHandler.Instance.CoreStop();
         }
 
         #endregion core job
 
         #region System proxy and Routings
 
-        public void SetListenerType(ESysProxyType type)
+        public async Task SetListenerType(ESysProxyType type)
         {
             if (_config.systemProxyItem.sysProxyType == type)
             {
@@ -880,8 +787,9 @@ namespace ServiceLib.ViewModels
 
         private async Task ChangeSystemProxyStatusAsync(ESysProxyType type, bool blChange)
         {
-            await _updateView?.Invoke(EViewAction.UpdateSysProxy, _config.tunModeItem.enableTun ? true : false);
-            _noticeHandler?.SendMessage($"{ResUI.TipChangeSystemProxy} - {_config.systemProxyItem.sysProxyType.ToString()}", true);
+            //await _updateView?.Invoke(EViewAction.UpdateSysProxy, _config.tunModeItem.enableTun ? true : false);
+            _updateView?.Invoke(EViewAction.UpdateSysProxy, false);
+            NoticeHandler.Instance.SendMessageEx($"{ResUI.TipChangeSystemProxy} - {_config.systemProxyItem.sysProxyType.ToString()}");
 
             BlSystemProxyClear = (type == ESysProxyType.ForcedClear);
             BlSystemProxySet = (type == ESysProxyType.ForcedChange);
@@ -892,7 +800,7 @@ namespace ServiceLib.ViewModels
 
             if (blChange)
             {
-                await _updateView?.Invoke(EViewAction.DispatcherRefreshIcon, null);
+                _updateView?.Invoke(EViewAction.DispatcherRefreshIcon, null);
             }
         }
 
@@ -906,7 +814,7 @@ namespace ServiceLib.ViewModels
             }
 
             BlRouting = true;
-            var routings = LazyConfig.Instance.RoutingItems();
+            var routings = AppHandler.Instance.RoutingItems();
             foreach (var item in routings)
             {
                 _routingItems.Add(item);
@@ -929,7 +837,7 @@ namespace ServiceLib.ViewModels
                 return;
             }
 
-            var item = LazyConfig.Instance.GetRoutingItem(SelectedRouting?.id);
+            var item = AppHandler.Instance.GetRoutingItem(SelectedRouting?.id);
             if (item is null)
             {
                 return;
@@ -941,9 +849,9 @@ namespace ServiceLib.ViewModels
 
             if (ConfigHandler.SetDefaultRouting(_config, item) == 0)
             {
-                _noticeHandler?.SendMessage(ResUI.TipChangeRouting, true);
+                NoticeHandler.Instance.SendMessageEx(ResUI.TipChangeRouting);
                 Reload();
-                await _updateView?.Invoke(EViewAction.DispatcherRefreshIcon, null);
+                _updateView?.Invoke(EViewAction.DispatcherRefreshIcon, null);
             }
         }
 
@@ -966,12 +874,13 @@ namespace ServiceLib.ViewModels
             {
                 _config.tunModeItem.enableTun = EnableTun;
                 // When running as a non-administrator, reboot to administrator mode
-                if (EnableTun && !IsAdministrator)
+                if (EnableTun && !_isAdministrator)
                 {
                     _config.tunModeItem.enableTun = false;
                     RebootAsAdmin();
                     return;
                 }
+                ConfigHandler.SaveConfig(_config);
                 Reload();
             }
         }
@@ -983,7 +892,7 @@ namespace ServiceLib.ViewModels
         public void InboundDisplayStaus()
         {
             StringBuilder sb = new();
-            sb.Append($"[{EInboundProtocol.socks}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks)}]");
+            sb.Append($"[{EInboundProtocol.socks}:{AppHandler.Instance.GetLocalPort(EInboundProtocol.socks)}]");
             sb.Append(" | ");
             //if (_config.systemProxyItem.sysProxyType == ESysProxyType.ForcedChange)
             //{
@@ -991,7 +900,7 @@ namespace ServiceLib.ViewModels
             //}
             //else
             //{
-            sb.Append($"[{EInboundProtocol.http}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.http)}]");
+            sb.Append($"[{EInboundProtocol.http}:{AppHandler.Instance.GetLocalPort(EInboundProtocol.http)}]");
             //}
             InboundDisplay = $"{ResUI.LabLocal}:{sb}";
 
@@ -1000,9 +909,9 @@ namespace ServiceLib.ViewModels
                 if (_config.inbound[0].newPort4LAN)
                 {
                     StringBuilder sb2 = new();
-                    sb2.Append($"[{EInboundProtocol.socks}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks2)}]");
+                    sb2.Append($"[{EInboundProtocol.socks}:{AppHandler.Instance.GetLocalPort(EInboundProtocol.socks2)}]");
                     sb2.Append(" | ");
-                    sb2.Append($"[{EInboundProtocol.http}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.http2)}]");
+                    sb2.Append($"[{EInboundProtocol.http}:{AppHandler.Instance.GetLocalPort(EInboundProtocol.http2)}]");
                     InboundLanDisplay = $"{ResUI.LabLAN}:{sb2}";
                 }
                 else

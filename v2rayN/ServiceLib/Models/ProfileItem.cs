@@ -35,11 +35,11 @@ namespace ServiceLib.Models
             string addr;
             if (arrAddr.Length > 2)
             {
-                addr = $"{arrAddr[0]}***{arrAddr[arrAddr.Length - 1]}";
+                addr = $"{arrAddr.First()}***{arrAddr.Last()}";
             }
             else if (arrAddr.Length > 1)
             {
-                addr = $"***{arrAddr[arrAddr.Length - 1]}";
+                addr = $"***{arrAddr.Last()}";
             }
             else
             {
@@ -178,7 +178,7 @@ namespace ServiceLib.Models
 
         public ECoreType? coreType { get; set; }
 
-        public int preSocksPort { get; set; }
+        public int? preSocksPort { get; set; }
 
         public string fingerprint { get; set; }
 

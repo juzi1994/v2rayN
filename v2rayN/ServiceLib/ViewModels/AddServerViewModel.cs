@@ -1,6 +1,5 @@
 ﻿using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using Splat;
 using System.Reactive;
 
 namespace ServiceLib.ViewModels
@@ -9,6 +8,7 @@ namespace ServiceLib.ViewModels
     {
         [Reactive]
         public ProfileItem SelectedSource { get; set; }
+
         [Reactive]
         public string? CoreType { get; set; }
 
@@ -16,11 +16,11 @@ namespace ServiceLib.ViewModels
 
         public AddServerViewModel(ProfileItem profileItem, Func<EViewAction, object?, Task<bool>>? updateView)
         {
-            _config = LazyConfig.Instance.Config;
-            _noticeHandler = Locator.Current.GetService<NoticeHandler>();
+            _config = AppHandler.Instance.Config;
+
             _updateView = updateView;
 
-            if (profileItem.id.IsNullOrEmpty())
+            if (profileItem.indexId.IsNullOrEmpty())
             {
                 profileItem.network = Global.DefaultNetwork;
                 profileItem.headerType = Global.None;
@@ -34,9 +34,9 @@ namespace ServiceLib.ViewModels
             }
             CoreType = SelectedSource?.coreType?.ToString();
 
-            SaveCmd = ReactiveCommand.Create(() =>
+            SaveCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SaveServerAsync();
+                await SaveServerAsync();
             });
         }
 
@@ -44,54 +44,54 @@ namespace ServiceLib.ViewModels
         {
             if (Utils.IsNullOrEmpty(SelectedSource.remarks))
             {
-                _noticeHandler?.Enqueue(ResUI.PleaseFillRemarks);
+                NoticeHandler.Instance.Enqueue(ResUI.PleaseFillRemarks);
                 return;
             }
 
             if (Utils.IsNullOrEmpty(SelectedSource.address))
             {
-                _noticeHandler?.Enqueue(ResUI.FillServerAddress);
+                NoticeHandler.Instance.Enqueue(ResUI.FillServerAddress);
                 return;
             }
             var port = SelectedSource.port.ToString();
             if (Utils.IsNullOrEmpty(port) || !Utils.IsNumeric(port)
                 || SelectedSource.port <= 0 || SelectedSource.port >= Global.MaxPort)
             {
-                _noticeHandler?.Enqueue(ResUI.FillCorrectServerPort);
+                NoticeHandler.Instance.Enqueue(ResUI.FillCorrectServerPort);
                 return;
             }
             if (SelectedSource.configType == EConfigType.Shadowsocks)
             {
                 if (Utils.IsNullOrEmpty(SelectedSource.id))
                 {
-                    _noticeHandler?.Enqueue(ResUI.FillPassword);
+                    NoticeHandler.Instance.Enqueue(ResUI.FillPassword);
                     return;
                 }
                 if (Utils.IsNullOrEmpty(SelectedSource.security))
                 {
-                    _noticeHandler?.Enqueue(ResUI.PleaseSelectEncryption);
+                    NoticeHandler.Instance.Enqueue(ResUI.PleaseSelectEncryption);
                     return;
                 }
             }
-            if (SelectedSource.configType != EConfigType.Socks
-                && SelectedSource.configType != EConfigType.Http)
+            if (SelectedSource.configType != EConfigType.SOCKS
+                && SelectedSource.configType != EConfigType.HTTP)
             {
                 if (Utils.IsNullOrEmpty(SelectedSource.id))
                 {
-                    _noticeHandler?.Enqueue(ResUI.FillUUID);
+                    NoticeHandler.Instance.Enqueue(ResUI.FillUUID);
                     return;
                 }
             }
-            SelectedSource.coreType = (ECoreType)Enum.Parse(typeof(ECoreType), CoreType);
+            SelectedSource.coreType = CoreType.IsNullOrEmpty() ? null : (ECoreType)Enum.Parse(typeof(ECoreType), CoreType);
 
             if (ConfigHandler.AddServer(_config, SelectedSource) == 0)
             {
-                _noticeHandler?.Enqueue(ResUI.OperationSuccess);
-                await _updateView?.Invoke(EViewAction.CloseWindow, null);
+                NoticeHandler.Instance.Enqueue(ResUI.OperationSuccess);
+                _updateView?.Invoke(EViewAction.CloseWindow, null);
             }
             else
             {
-                _noticeHandler?.Enqueue(ResUI.OperationFailed);
+                NoticeHandler.Instance.Enqueue(ResUI.OperationFailed);
             }
         }
     }

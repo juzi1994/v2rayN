@@ -16,7 +16,7 @@
     <DockPanel Classes="Margin8">
         <StackPanel
             HorizontalAlignment="Center"
-            Classes="Margin4"
+            Classes="Margin8"
             DockPanel.Dock="Bottom"
             Orientation="Horizontal">
             <Button
@@ -33,7 +33,6 @@
         </StackPanel>
 
         <TabControl HorizontalContentAlignment="Left">
-
             <TabItem Header="{x:Static resx:ResUI.TbSettingsCoreDns}">
                 <DockPanel Classes="Margin8">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
@@ -43,9 +42,9 @@
                             Text="{x:Static resx:ResUI.TbSettingsRemoteDNS}" />
 
                         <TextBlock VerticalAlignment="Center" Classes="Margin8">
-                            <Button Click="linkDnsObjectDoc_Click">
+                            <HyperlinkButton Classes="WithIcon" Click="linkDnsObjectDoc_Click">
                                 <TextBlock Text="{x:Static resx:ResUI.TbDnsObjectDoc}" />
-                            </Button>
+                            </HyperlinkButton>
                         </TextBlock>
                         <Button
                             x:Name="btnImportDefConfig4V2ray"
@@ -89,13 +88,15 @@
                         </StackPanel>
                     </WrapPanel>
 
-                    <TextBox
-                        x:Name="txtnormalDNS"
-                        VerticalAlignment="Stretch"
-                        BorderThickness="1"
-                        Classes="TextArea Margin8"
-                        TextWrapping="Wrap"
-                        ToolTip.Tip="Http/Socks" />
+                    <Grid Classes="Margin8">
+                        <TextBox
+                            x:Name="txtnormalDNS"
+                            VerticalAlignment="Stretch"
+                            BorderThickness="1"
+                            Classes="TextArea Margin8"
+                            TextWrapping="Wrap"
+                            Watermark="HTTP/SOCKS" />
+                    </Grid>
                 </DockPanel>
             </TabItem>
 
@@ -103,9 +104,9 @@
                 <DockPanel Classes="Margin8">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Classes="Margin8">
-                            <Button Click="linkDnsSingboxObjectDoc_Click">
+                            <HyperlinkButton Classes="WithIcon" Click="linkDnsSingboxObjectDoc_Click">
                                 <TextBlock Text="{x:Static resx:ResUI.TbDnsSingboxObjectDoc}" />
-                            </Button>
+                            </HyperlinkButton>
                         </TextBlock>
                         <Button
                             x:Name="btnImportDefConfig4Singbox"
@@ -148,24 +149,26 @@
                         <TextBox
                             x:Name="txtnormalDNS2"
                             Grid.Column="0"
+                            Width="400"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
                             BorderThickness="1"
                             Classes="TextArea Margin8"
                             TextWrapping="Wrap"
-                            ToolTip.Tip="Http/Socks" />
+                            Watermark="HTTP/SOCKS" />
 
                         <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
 
                         <TextBox
                             x:Name="txttunDNS2"
                             Grid.Column="2"
+                            Width="400"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
                             BorderThickness="1"
                             Classes="TextArea Margin8"
                             TextWrapping="Wrap"
-                            ToolTip.Tip="{x:Static resx:ResUI.TbSettingsTunMode}" />
+                            Watermark="{x:Static resx:ResUI.TbSettingsTunMode}" />
                     </Grid>
                 </DockPanel>
             </TabItem>

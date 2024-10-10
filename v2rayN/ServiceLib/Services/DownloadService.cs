@@ -3,12 +3,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 
-namespace ServiceLib.Handler
+namespace ServiceLib.Services
 {
     /// <summary>
     ///Download
     /// </summary>
-    public class DownloadHandler
+    public class DownloadService
     {
         public event EventHandler<ResultEventArgs>? UpdateCompleted;
 
@@ -26,19 +26,19 @@ namespace ServiceLib.Handler
             }
         }
 
-        public async Task<int> DownloadDataAsync(string url, WebProxy webProxy, int downloadTimeout, Action<bool, string> update)
+        public async Task<int> DownloadDataAsync(string url, WebProxy webProxy, int downloadTimeout, Action<bool, string> updateFunc)
         {
             try
             {
-                Utils.SetSecurityProtocol(LazyConfig.Instance.Config.guiItem.enableSecurityProtocolTls13);
+                Utils.SetSecurityProtocol(AppHandler.Instance.Config.guiItem.enableSecurityProtocolTls13);
 
                 var progress = new Progress<string>();
                 progress.ProgressChanged += (sender, value) =>
                 {
-                    if (update != null)
+                    if (updateFunc != null)
                     {
                         string msg = $"{value}";
-                        update(false, msg);
+                        updateFunc?.Invoke(false, msg);
                     }
                 };
 
@@ -49,20 +49,20 @@ namespace ServiceLib.Handler
             }
             catch (Exception ex)
             {
-                update(false, ex.Message);
+                updateFunc?.Invoke(false, ex.Message);
                 if (ex.InnerException != null)
                 {
-                    update(false, ex.InnerException.Message);
+                    updateFunc?.Invoke(false, ex.InnerException.Message);
                 }
             }
             return 0;
         }
 
-        public async Task DownloadFileAsync(string url, bool blProxy, int downloadTimeout)
+        public async Task DownloadFileAsync(string url, string fileName, bool blProxy, int downloadTimeout)
         {
             try
             {
-                Utils.SetSecurityProtocol(LazyConfig.Instance.Config.guiItem.enableSecurityProtocolTls13);
+                Utils.SetSecurityProtocol(AppHandler.Instance.Config.guiItem.enableSecurityProtocolTls13);
                 UpdateCompleted?.Invoke(this, new ResultEventArgs(false, $"{ResUI.Downloading}   {url}"));
 
                 var progress = new Progress<double>();
@@ -74,7 +74,7 @@ namespace ServiceLib.Handler
                 var webProxy = GetWebProxy(blProxy);
                 await DownloaderHelper.Instance.DownloadFileAsync(webProxy,
                     url,
-                    Utils.GetTempPath(Utils.GetDownloadFileName(url)),
+                    fileName,
                     progress,
                     downloadTimeout);
             }
@@ -92,7 +92,7 @@ namespace ServiceLib.Handler
 
         public async Task<string?> UrlRedirectAsync(string url, bool blProxy)
         {
-            Utils.SetSecurityProtocol(LazyConfig.Instance.Config.guiItem.enableSecurityProtocolTls13);
+            Utils.SetSecurityProtocol(AppHandler.Instance.Config.guiItem.enableSecurityProtocolTls13);
             var webRequestHandler = new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
@@ -117,7 +117,7 @@ namespace ServiceLib.Handler
             try
             {
                 var result1 = await DownloadStringAsync(url, blProxy, userAgent);
-                if (!Utils.IsNullOrEmpty(result1))
+                if (Utils.IsNotEmpty(result1))
                 {
                     return result1;
                 }
@@ -135,7 +135,7 @@ namespace ServiceLib.Handler
             try
             {
                 var result2 = await DownloadStringViaDownloader(url, blProxy, userAgent);
-                if (!Utils.IsNullOrEmpty(result2))
+                if (Utils.IsNotEmpty(result2))
                 {
                     return result2;
                 }
@@ -155,7 +155,7 @@ namespace ServiceLib.Handler
                 using var wc = new WebClient();
                 wc.Proxy = GetWebProxy(blProxy);
                 var result3 = await wc.DownloadStringTaskAsync(url);
-                if (!Utils.IsNullOrEmpty(result3))
+                if (Utils.IsNotEmpty(result3))
                 {
                     return result3;
                 }
@@ -181,7 +181,7 @@ namespace ServiceLib.Handler
         {
             try
             {
-                Utils.SetSecurityProtocol(LazyConfig.Instance.Config.guiItem.enableSecurityProtocolTls13);
+                Utils.SetSecurityProtocol(AppHandler.Instance.Config.guiItem.enableSecurityProtocolTls13);
                 var webProxy = GetWebProxy(blProxy);
                 var client = new HttpClient(new SocketsHttpHandler()
                 {
@@ -197,7 +197,7 @@ namespace ServiceLib.Handler
 
                 Uri uri = new(url);
                 //Authorization Header
-                if (!Utils.IsNullOrEmpty(uri.UserInfo))
+                if (Utils.IsNotEmpty(uri.UserInfo))
                 {
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Utils.Base64Encode(uri.UserInfo));
                 }
@@ -226,7 +226,7 @@ namespace ServiceLib.Handler
         {
             try
             {
-                Utils.SetSecurityProtocol(LazyConfig.Instance.Config.guiItem.enableSecurityProtocolTls13);
+                Utils.SetSecurityProtocol(AppHandler.Instance.Config.guiItem.enableSecurityProtocolTls13);
 
                 var webProxy = GetWebProxy(blProxy);
 
@@ -260,7 +260,7 @@ namespace ServiceLib.Handler
 
                 try
                 {
-                    var config = LazyConfig.Instance.Config;
+                    var config = AppHandler.Instance.Config;
                     int responseTime = await GetRealPingTime(config.speedTestItem.speedPingTestUrl, webProxy, 10);
                     return responseTime;
                 }
@@ -314,7 +314,7 @@ namespace ServiceLib.Handler
             {
                 return null;
             }
-            var httpPort = LazyConfig.Instance.GetLocalPort(EInboundProtocol.http);
+            var httpPort = AppHandler.Instance.GetLocalPort(EInboundProtocol.http);
             if (!SocketCheck(Global.Loopback, httpPort))
             {
                 return null;

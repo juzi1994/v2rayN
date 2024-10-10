@@ -9,22 +9,22 @@
         {
         }
 
-        public void RegUpdateTask(Config config, Action<bool, string> update)
+        public void RegUpdateTask(Config config, Action<bool, string> updateFunc)
         {
-            Task.Run(() => UpdateTaskRunSubscription(config, update));
-            Task.Run(() => UpdateTaskRunGeo(config, update));
+            Task.Run(() => UpdateTaskRunSubscription(config, updateFunc));
+            Task.Run(() => UpdateTaskRunGeo(config, updateFunc));
         }
 
-        private async Task UpdateTaskRunSubscription(Config config, Action<bool, string> update)
+        private async Task UpdateTaskRunSubscription(Config config, Action<bool, string> updateFunc)
         {
             await Task.Delay(60000);
             Logging.SaveLog("UpdateTaskRunSubscription");
 
-            var updateHandle = new UpdateHandler();
+            var updateHandle = new UpdateService();
             while (true)
             {
                 var updateTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
-                var lstSubs = LazyConfig.Instance.SubItems()
+                var lstSubs = AppHandler.Instance.SubItems()
                             .Where(t => t.autoUpdateInterval > 0)
                             .Where(t => updateTime - t.updateTime >= t.autoUpdateInterval * 60)
                             .ToList();
@@ -33,7 +33,7 @@
                 {
                     updateHandle.UpdateSubscriptionProcess(config, item.id, true, (bool success, string msg) =>
                     {
-                        update(success, msg);
+                        updateFunc?.Invoke(success, msg);
                         if (success)
                             Logging.SaveLog("subscription" + msg);
                     });
@@ -46,30 +46,30 @@
             }
         }
 
-        private async Task UpdateTaskRunGeo(Config config, Action<bool, string> update)
+        private async Task UpdateTaskRunGeo(Config config, Action<bool, string> updateFunc)
         {
             var autoUpdateGeoTime = DateTime.Now;
 
-            await Task.Delay(1000 * 120);
+            //await Task.Delay(1000 * 120);
             Logging.SaveLog("UpdateTaskRunGeo");
 
-            var updateHandle = new UpdateHandler();
+            var updateHandle = new UpdateService();
             while (true)
             {
+                await Task.Delay(1000 * 3600);
+
                 var dtNow = DateTime.Now;
                 if (config.guiItem.autoUpdateInterval > 0)
                 {
                     if ((dtNow - autoUpdateGeoTime).Hours % config.guiItem.autoUpdateInterval == 0)
                     {
-                        updateHandle.UpdateGeoFileAll(config, (bool success, string msg) =>
+                        await updateHandle.UpdateGeoFileAll(config, (bool success, string msg) =>
                         {
-                            update(false, msg);
+                            updateFunc?.Invoke(false, msg);
                         });
                         autoUpdateGeoTime = dtNow;
                     }
                 }
-
-                await Task.Delay(1000 * 3600);
             }
         }
     }

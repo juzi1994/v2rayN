@@ -33,10 +33,11 @@ namespace v2rayN.Views
                 this.Bind(ViewModel, vm => vm.SelectedSource.convertTarget, v => v.cmbConvertTarget.Text).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedSource.prevProfile, v => v.txtPrevProfile.Text).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedSource.nextProfile, v => v.txtNextProfile.Text).DisposeWith(disposables);
+                this.Bind(ViewModel, vm => vm.SelectedSource.preSocksPort, v => v.txtPreSocksPort.Text).DisposeWith(disposables);
 
                 this.BindCommand(ViewModel, vm => vm.SaveCmd, v => v.btnSave).DisposeWith(disposables);
             });
-            WindowsUtils.SetDarkBorder(this, LazyConfig.Instance.Config.uiItem.followSystemTheme ? !WindowsUtils.IsLightTheme() : LazyConfig.Instance.Config.uiItem.colorModeDark);
+            WindowsUtils.SetDarkBorder(this, AppHandler.Instance.Config.uiItem.followSystemTheme ? !WindowsUtils.IsLightTheme() : AppHandler.Instance.Config.uiItem.colorModeDark);
         }
 
         private async Task<bool> UpdateViewHandler(EViewAction action, object? obj)

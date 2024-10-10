@@ -20,6 +20,9 @@ namespace ServiceLib.ViewModels
         public ReactiveCommand<Unit, Unit> ConnectionCloseAllCmd { get; }
 
         [Reactive]
+        public string HostFilter { get; set; }
+
+        [Reactive]
         public int SortingSelected { get; set; }
 
         [Reactive]
@@ -27,14 +30,14 @@ namespace ServiceLib.ViewModels
 
         public ClashConnectionsViewModel(Func<EViewAction, object?, Task<bool>>? updateView)
         {
-            _config = LazyConfig.Instance.Config;
+            _config = AppHandler.Instance.Config;
             _updateView = updateView;
             SortingSelected = _config.clashUIItem.connectionsSorting;
             AutoRefresh = _config.clashUIItem.connectionsAutoRefresh;
 
             var canEditRemove = this.WhenAnyValue(
              x => x.SelectedSource,
-             selectedSource => selectedSource != null && !string.IsNullOrEmpty(selectedSource.id));
+             selectedSource => selectedSource != null && Utils.IsNotEmpty(selectedSource.id));
 
             this.WhenAnyValue(
               x => x.SortingSelected,
@@ -46,14 +49,14 @@ namespace ServiceLib.ViewModels
                y => y == true)
                    .Subscribe(c => { _config.clashUIItem.connectionsAutoRefresh = AutoRefresh; });
 
-            ConnectionCloseCmd = ReactiveCommand.Create(() =>
+            ConnectionCloseCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                ClashConnectionClose(false);
+                await ClashConnectionClose(false);
             }, canEditRemove);
 
-            ConnectionCloseAllCmd = ReactiveCommand.Create(() =>
+            ConnectionCloseAllCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                ClashConnectionClose(true);
+                await ClashConnectionClose(true);
             });
 
             Init();
@@ -77,10 +80,10 @@ namespace ServiceLib.ViewModels
         {
             var lastTime = DateTime.Now;
 
-            Observable.Interval(TimeSpan.FromSeconds(10))
+            Observable.Interval(TimeSpan.FromSeconds(5))
               .Subscribe(x =>
               {
-                  if (!(AutoRefresh && _config.uiItem.showInTaskbar && _config.IsRunningCore(ECoreType.clash)))
+                  if (!(AutoRefresh && _config.uiItem.showInTaskbar && _config.IsRunningCore(ECoreType.sing_box)))
                   {
                       return;
                   }
@@ -106,7 +109,7 @@ namespace ServiceLib.ViewModels
                     return;
                 }
 
-                await _updateView?.Invoke(EViewAction.DispatcherRefreshConnections, it?.connections);
+                _updateView?.Invoke(EViewAction.DispatcherRefreshConnections, it?.connections);
             });
         }
 
@@ -118,12 +121,18 @@ namespace ServiceLib.ViewModels
             var lstModel = new List<ClashConnectionModel>();
             foreach (var item in connections ?? [])
             {
+                var host = $"{(Utils.IsNullOrEmpty(item.metadata.host) ? item.metadata.destinationIP : item.metadata.host)}:{item.metadata.destinationPort}";
+                if (HostFilter.IsNotEmpty() && !host.Contains(HostFilter))
+                {
+                    continue;
+                }
+
                 ClashConnectionModel model = new();
 
                 model.id = item.id;
                 model.network = item.metadata.network;
                 model.type = item.metadata.type;
-                model.host = $"{(string.IsNullOrEmpty(item.metadata.host) ? item.metadata.destinationIP : item.metadata.host)}:{item.metadata.destinationPort}";
+                model.host = host;
                 var sp = (dtNow - item.start);
                 model.time = sp.TotalSeconds < 0 ? 1 : sp.TotalSeconds;
                 model.upload = item.upload;
@@ -168,7 +177,7 @@ namespace ServiceLib.ViewModels
             _connectionItems.AddRange(lstModel);
         }
 
-        public void ClashConnectionClose(bool all)
+        public async Task ClashConnectionClose(bool all)
         {
             var id = string.Empty;
             if (!all)

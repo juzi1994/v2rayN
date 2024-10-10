@@ -94,7 +94,7 @@
 
         public bool ignoreGeoUpdateCore { get; set; } = true;
 
-        public int autoUpdateInterval { get; set; } = 10;
+        public int autoUpdateInterval { get; set; }
 
         public bool checkPreReleaseUpdate { get; set; } = false;
 
@@ -103,8 +103,13 @@
         public int trayMenuServersLimit { get; set; } = 20;
 
         public bool enableHWA { get; set; } = false;
+    }
 
-        public bool enableLog { get; set; } = true;
+    [Serializable]
+    public class MsgUIItem
+    {
+        public string? mainMsgFilter { get; set; }
+        public bool? autoRefresh { get; set; }
     }
 
     [Serializable]
@@ -126,7 +131,6 @@
         public bool enableDragDropSort { get; set; }
         public bool doubleClick2Activate { get; set; }
         public bool autoHideStartup { get; set; }
-        public string mainMsgFilter { get; set; }
         public List<ColumnItem> mainColumnItem { get; set; }
         public bool showInTaskbar { get; set; }
     }
@@ -198,10 +202,19 @@
     }
 
     [Serializable]
+    public class Mux4RayItem
+    {
+        public int? concurrency { get; set; }
+        public int? xudpConcurrency { get; set; }
+        public string? xudpProxyUDP443 { get; set; }
+    }
+
+    [Serializable]
     public class Mux4SboxItem
     {
         public string protocol { get; set; }
         public int max_connections { get; set; }
+        public bool? padding { get; set; }
     }
 
     [Serializable]
@@ -232,5 +245,14 @@
         public string systemProxyExceptions { get; set; }
         public bool notProxyLocalAddress { get; set; } = true;
         public string systemProxyAdvancedProtocol { get; set; }
+    }
+
+    [Serializable]
+    public class WebDavItem
+    {
+        public string? url { get; set; }
+        public string? userName { get; set; }
+        public string? password { get; set; }
+        public string? dirName { get; set; }
     }
 }

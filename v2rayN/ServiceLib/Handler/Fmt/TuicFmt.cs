@@ -8,7 +8,7 @@
 
             ProfileItem item = new()
             {
-                configType = EConfigType.Tuic
+                configType = EConfigType.TUIC
             };
 
             Uri url = new(str);
@@ -36,16 +36,16 @@
             string url = string.Empty;
 
             string remark = string.Empty;
-            if (!Utils.IsNullOrEmpty(item.remarks))
+            if (Utils.IsNotEmpty(item.remarks))
             {
                 remark = "#" + Utils.UrlEncode(item.remarks);
             }
             var dicQuery = new Dictionary<string, string>();
-            if (!Utils.IsNullOrEmpty(item.sni))
+            if (Utils.IsNotEmpty(item.sni))
             {
                 dicQuery.Add("sni", item.sni);
             }
-            if (!Utils.IsNullOrEmpty(item.alpn))
+            if (Utils.IsNotEmpty(item.alpn))
             {
                 dicQuery.Add("alpn", Utils.UrlEncode(item.alpn));
             }
@@ -57,7 +57,7 @@
             $"{item.id}:{item.security}",
             GetIpv6(item.address),
             item.port);
-            url = $"{Global.ProtocolShares[EConfigType.Tuic]}{url}{query}{remark}";
+            url = $"{Global.ProtocolShares[EConfigType.TUIC]}{url}{query}{remark}";
             return url;
         }
     }

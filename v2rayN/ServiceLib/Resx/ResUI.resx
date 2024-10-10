@@ -410,7 +410,7 @@
     <value>Local</value>
   </data>
   <data name="MsgServerTitle" xml:space="preserve">
-    <value>Servers Filter, press Enter to execute</value>
+    <value>Server filter, press Enter to execute</value>
   </data>
   <data name="menuCheckUpdate" xml:space="preserve">
     <value>Check Update</value>
@@ -491,7 +491,7 @@
     <value>Language (Restart)</value>
   </data>
   <data name="menuAddServerViaClipboard" xml:space="preserve">
-    <value>Importing Share Links from clipboard (Ctrl+V)</value>
+    <value>Import Share Links from clipboard (Ctrl+V)</value>
   </data>
   <data name="menuAddServerViaScan" xml:space="preserve">
     <value>Scan QR code on the screen (Ctrl+S)</value>
@@ -536,7 +536,7 @@
     <value>Add [Shadowsocks] server</value>
   </data>
   <data name="menuAddSocksServer" xml:space="preserve">
-    <value>Add [Socks] server</value>
+    <value>Add [SOCKS] server</value>
   </data>
   <data name="menuAddTrojanServer" xml:space="preserve">
     <value>Add [Trojan] server</value>
@@ -668,7 +668,7 @@
     <value>Encryption</value>
   </data>
   <data name="TbPreSocksPort" xml:space="preserve">
-    <value>txtPreSocksPort</value>
+    <value>Socks port</value>
   </data>
   <data name="TipPreSocksPort" xml:space="preserve">
     <value>* After setting this value, an socks service will be started using Xray/sing-box(Tun) to provide functions such as speed display</value>
@@ -1094,7 +1094,7 @@
     <value>Use System Hosts</value>
   </data>
   <data name="menuAddTuicServer" xml:space="preserve">
-    <value>Add [Tuic] server</value>
+    <value>Add [TUIC] server</value>
   </data>
   <data name="TbHeaderType8" xml:space="preserve">
     <value>Congestion control</value>
@@ -1115,7 +1115,7 @@
     <value>Enable IPv6 Address</value>
   </data>
   <data name="menuAddWireguardServer" xml:space="preserve">
-    <value>Add [Wireguard] server</value>
+    <value>Add [WireGuard] server</value>
   </data>
   <data name="TbPrivateKey" xml:space="preserve">
     <value>PrivateKey</value>
@@ -1148,7 +1148,7 @@
     <value>*grpc Authority</value>
   </data>
   <data name="menuAddHttpServer" xml:space="preserve">
-    <value>Add [Http] server</value>
+    <value>Add [HTTP] server</value>
   </data>
   <data name="TbSettingsEnableFragmentTips" xml:space="preserve">
     <value>Use Xray and enable non-Tun mode, which conflicts with the group previous proxy</value>
@@ -1275,5 +1275,56 @@
   </data>
   <data name="UpdateStandalonePackageTip" xml:space="preserve">
     <value>You are currently running a standalone package, please manually download the SelfContained.7z file to unzip and overwrite it!</value>
+  </data>
+  <data name="TbPreSocksPort4Sub" xml:space="preserve">
+    <value>Custom config socks port</value>
+  </data>
+  <data name="menuBackupAndRestore" xml:space="preserve">
+    <value>Backup and Restore</value>
+  </data>
+  <data name="menuLocalBackup" xml:space="preserve">
+    <value>Backup to local</value>
+  </data>
+  <data name="menuLocalRestore" xml:space="preserve">
+    <value>Restore from local</value>
+  </data>
+  <data name="menuRemoteBackup" xml:space="preserve">
+    <value>Backup to remote (WebDAV)</value>
+  </data>
+  <data name="menuRemoteRestore" xml:space="preserve">
+    <value>Restore from remote (WebDAV)</value>
+  </data>
+  <data name="menuLocalBackupAndRestore" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="menuRemoteBackupAndRestore" xml:space="preserve">
+    <value>Remote (WebDAV)</value>
+  </data>
+  <data name="LvWebDavUrl" xml:space="preserve">
+    <value>WebDav Url</value>
+  </data>
+  <data name="LvWebDavUserName" xml:space="preserve">
+    <value>WebDav User Name</value>
+  </data>
+  <data name="LvWebDavPassword" xml:space="preserve">
+    <value>WebDav Password</value>
+  </data>
+  <data name="LvWebDavCheck" xml:space="preserve">
+    <value>WebDav Check</value>
+  </data>
+  <data name="LvWebDavDirName" xml:space="preserve">
+    <value>Remote folder name (optional)</value>
+  </data>
+  <data name="LocalRestoreInvalidZipTips" xml:space="preserve">
+    <value>Invalid backup file</value>
+  </data>
+  <data name="ConnectionsHostFilterTitle" xml:space="preserve">
+    <value>Host filter</value>
+  </data>
+  <data name="TipActiveServer" xml:space="preserve">
+    <value>Active</value>    
+  </data>
+  <data name="menuStorageUI" xml:space="preserve">
+    <value>Save Interface Layout</value>
   </data>
 </root>

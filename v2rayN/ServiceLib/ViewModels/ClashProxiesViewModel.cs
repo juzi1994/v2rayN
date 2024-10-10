@@ -2,7 +2,6 @@ using DynamicData;
 using DynamicData.Binding;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using Splat;
 using System.Reactive;
 using System.Reactive.Linq;
 using static ServiceLib.Models.ClashProviders;
@@ -44,8 +43,7 @@ namespace ServiceLib.ViewModels
 
         public ClashProxiesViewModel(Func<EViewAction, object?, Task<bool>>? updateView)
         {
-            _noticeHandler = Locator.Current.GetService<NoticeHandler>();
-            _config = LazyConfig.Instance.Config;
+            _config = AppHandler.Instance.Config;
             _updateView = updateView;
 
             SelectedGroup = new();
@@ -57,7 +55,7 @@ namespace ServiceLib.ViewModels
 
             this.WhenAnyValue(
                x => x.SelectedGroup,
-               y => y != null && !string.IsNullOrEmpty(y.name))
+               y => y != null && Utils.IsNotEmpty(y.name))
                    .Subscribe(c => RefreshProxyDetails(c));
 
             this.WhenAnyValue(
@@ -75,22 +73,22 @@ namespace ServiceLib.ViewModels
             y => y == true)
                 .Subscribe(c => { _config.clashUIItem.proxiesAutoRefresh = AutoRefresh; });
 
-            ProxiesReloadCmd = ReactiveCommand.Create(() =>
+            ProxiesReloadCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                ProxiesReload();
+                await ProxiesReload();
             });
-            ProxiesDelaytestCmd = ReactiveCommand.Create(() =>
+            ProxiesDelaytestCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                ProxiesDelayTest(true);
+                await ProxiesDelayTest(true);
             });
 
-            ProxiesDelaytestPartCmd = ReactiveCommand.Create(() =>
+            ProxiesDelaytestPartCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                ProxiesDelayTest(false);
+                await ProxiesDelayTest(false);
             });
-            ProxiesSelectActivityCmd = ReactiveCommand.Create(() =>
+            ProxiesSelectActivityCmd = ReactiveCommand.CreateFromTask(async () =>
             {
-                SetActiveProxy();
+                await SetActiveProxy();
             });
 
             ProxiesReload();
@@ -135,16 +133,16 @@ namespace ServiceLib.ViewModels
 
         private void UpdateHandler(bool notify, string msg)
         {
-            _noticeHandler?.SendMessage(msg, true);
+            NoticeHandler.Instance.SendMessageEx(msg);
         }
 
-        public void ProxiesReload()
+        public async Task ProxiesReload()
         {
             GetClashProxies(true);
             ProxiesDelayTest();
         }
 
-        public void ProxiesDelayTest()
+        public async Task ProxiesDelayTest()
         {
             ProxiesDelayTest(true);
         }
@@ -179,7 +177,7 @@ namespace ServiceLib.ViewModels
                 }
                 if (refreshUI)
                 {
-                    await _updateView?.Invoke(EViewAction.DispatcherRefreshProxyGroups, null);
+                    _updateView?.Invoke(EViewAction.DispatcherRefreshProxyGroups, null);
                 }
             });
         }
@@ -194,7 +192,7 @@ namespace ServiceLib.ViewModels
             {
                 foreach (var it in proxyGroups)
                 {
-                    if (string.IsNullOrEmpty(it.name) || !_proxies.ContainsKey(it.name))
+                    if (Utils.IsNullOrEmpty(it.name) || !_proxies.ContainsKey(it.name))
                     {
                         continue;
                     }
@@ -220,7 +218,7 @@ namespace ServiceLib.ViewModels
                     continue;
                 }
                 var item = _proxyGroups.Where(t => t.name == kv.Key).FirstOrDefault();
-                if (item != null && !string.IsNullOrEmpty(item.name))
+                if (item != null && Utils.IsNotEmpty(item.name))
                 {
                     continue;
                 }
@@ -257,7 +255,7 @@ namespace ServiceLib.ViewModels
                 return;
             }
             var name = SelectedGroup?.name;
-            if (string.IsNullOrEmpty(name))
+            if (Utils.IsNullOrEmpty(name))
             {
                 return;
             }
@@ -340,30 +338,30 @@ namespace ServiceLib.ViewModels
             return null;
         }
 
-        public void SetActiveProxy()
+        public async Task SetActiveProxy()
         {
-            if (SelectedGroup == null || string.IsNullOrEmpty(SelectedGroup.name))
+            if (SelectedGroup == null || Utils.IsNullOrEmpty(SelectedGroup.name))
             {
                 return;
             }
-            if (SelectedDetail == null || string.IsNullOrEmpty(SelectedDetail.name))
+            if (SelectedDetail == null || Utils.IsNullOrEmpty(SelectedDetail.name))
             {
                 return;
             }
             var name = SelectedGroup.name;
-            if (string.IsNullOrEmpty(name))
+            if (Utils.IsNullOrEmpty(name))
             {
                 return;
             }
             var nameNode = SelectedDetail.name;
-            if (string.IsNullOrEmpty(nameNode))
+            if (Utils.IsNullOrEmpty(nameNode))
             {
                 return;
             }
             var selectedProxy = TryGetProxy(name);
             if (selectedProxy == null || selectedProxy.type != "Selector")
             {
-                _noticeHandler?.Enqueue(ResUI.OperationFailed);
+                NoticeHandler.Instance.Enqueue(ResUI.OperationFailed);
                 return;
             }
 
@@ -379,10 +377,10 @@ namespace ServiceLib.ViewModels
 
                 SelectedGroup = group2;
             }
-            _noticeHandler?.Enqueue(ResUI.OperationSuccess);
+            NoticeHandler.Instance.Enqueue(ResUI.OperationSuccess);
         }
 
-        private void ProxiesDelayTest(bool blAll)
+        private async Task ProxiesDelayTest(bool blAll)
         {
             //UpdateHandler(false, "Clash Proxies Latency Test");
 
@@ -393,12 +391,12 @@ namespace ServiceLib.ViewModels
                     GetClashProxies(true);
                     return;
                 }
-                if (string.IsNullOrEmpty(result))
+                if (Utils.IsNullOrEmpty(result))
                 {
                     return;
                 }
 
-                await _updateView?.Invoke(EViewAction.DispatcherProxiesDelayTest, new SpeedTestResult() { IndexId = item.name, Delay = result });
+                _updateView?.Invoke(EViewAction.DispatcherProxiesDelayTest, new SpeedTestResult() { IndexId = item.name, Delay = result });
             });
         }
 
@@ -439,7 +437,7 @@ namespace ServiceLib.ViewModels
             Observable.Interval(TimeSpan.FromSeconds(60))
               .Subscribe(x =>
               {
-                  if (!(AutoRefresh && _config.uiItem.showInTaskbar && _config.IsRunningCore(ECoreType.clash)))
+                  if (!(AutoRefresh && _config.uiItem.showInTaskbar && _config.IsRunningCore(ECoreType.sing_box)))
                   {
                       return;
                   }

@@ -1,40 +1,32 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Text;
 
-namespace v2rayUpgrade
+namespace AmazTool
 {
-    internal static class Program
+    internal class UpgradeApp
     {
-        private static readonly string defaultFilename = "v2rayN.zip_temp";
-        private static string? fileName;
-
-        /// <summary>
-        /// 应用程序的主入口点。
-        /// </summary>
-        [STAThread]
-        private static void Main(string[] args)
+        public static void Upgrade(string fileName)
         {
-            if (args.Length > 0)
-            {
-                fileName = Uri.UnescapeDataString(string.Join(" ", args));
-            }
-            else
-            {
-                fileName = defaultFilename;
-            }
             Console.WriteLine(fileName);
             Console.WriteLine("In progress, please wait...(正在进行中，请等待)");
 
-            Thread.Sleep(10000);
+            Thread.Sleep(5000);
+
+            if (!File.Exists(fileName))
+            {
+                Console.WriteLine("Upgrade Failed, File Not Exist(升级失败,文件不存在).");
+                return;
+            }
 
             try
             {
-                Process[] existing = Process.GetProcessesByName("v2rayN");
+                Process[] existing = Process.GetProcessesByName(V2rayN());
                 foreach (Process p in existing)
                 {
                     var path = p.MainModule?.FileName ?? "";
-                    if (path.StartsWith(GetPath("v2rayN")))
+                    if (path.StartsWith(GetPath(V2rayN())))
                     {
                         p.Kill();
                         p.WaitForExit(100);
@@ -48,25 +40,12 @@ namespace v2rayUpgrade
                     "Close it manually, or the upgrade may fail.(请手动关闭正在运行的v2rayN，否则可能升级失败。\n\n" + ex.StackTrace);
             }
 
-            if (!File.Exists(fileName))
-            {
-                if (File.Exists(defaultFilename))
-                {
-                    fileName = defaultFilename;
-                }
-                else
-                {
-                    Console.WriteLine("Upgrade Failed, File Not Exist(升级失败,文件不存在).");
-                    return;
-                }
-            }
-
             StringBuilder sb = new();
             try
             {
                 string thisAppOldFile = $"{GetExePath()}.tmp";
                 File.Delete(thisAppOldFile);
-                string startKey = "v2rayN/";
+                string splitKey = "/";
 
                 using ZipArchive archive = ZipFile.OpenRead(fileName);
                 foreach (ZipArchiveEntry entry in archive.Entries)
@@ -77,11 +56,11 @@ namespace v2rayUpgrade
                         {
                             continue;
                         }
-                        string fullName = entry.FullName;
-                        if (fullName.StartsWith(startKey))
-                        {
-                            fullName = fullName[startKey.Length..];
-                        }
+
+                        var lst = entry.FullName.Split(splitKey);
+                        if (lst.Length == 1) continue;
+                        string fullName = string.Join(splitKey, lst[1..lst.Length]);
+
                         if (string.Equals(GetExePath(), GetPath(fullName), StringComparison.OrdinalIgnoreCase))
                         {
                             File.Move(GetExePath(), thisAppOldFile);
@@ -90,6 +69,8 @@ namespace v2rayUpgrade
                         string entryOutputPath = GetPath(fullName);
                         Directory.CreateDirectory(Path.GetDirectoryName(entryOutputPath)!);
                         entry.ExtractToFile(entryOutputPath, true);
+
+                        Console.WriteLine(entryOutputPath);
                     }
                     catch (Exception ex)
                     {
@@ -104,25 +85,35 @@ namespace v2rayUpgrade
             }
             if (sb.Length > 0)
             {
-                Console.WriteLine("Upgrade Failed,Hold ctrl + c to copy to clipboard.\n" +
-                    "(升级失败,按住ctrl+c可以复制到剪贴板)." + sb.ToString());
+                Console.WriteLine("Upgrade Failed.\n" +
+                    "(升级失败)." + sb.ToString());
                 return;
             }
 
-            Process.Start("v2rayN");
+            Console.WriteLine("Start v2rayN, please wait...(正在重启，请等待)");
+            Thread.Sleep(3000);
+            Process process = new()
+            {
+                StartInfo = new()
+                {
+                    FileName = V2rayN(),
+                    WorkingDirectory = StartupPath()
+                }
+            };
+            process.Start();
         }
 
-        public static string GetExePath()
+        private static string GetExePath()
         {
-            return Environment.ProcessPath ?? string.Empty;
+            return Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
         }
 
-        public static string StartupPath()
+        private static string StartupPath()
         {
             return AppDomain.CurrentDomain.BaseDirectory;
         }
 
-        public static string GetPath(string fileName)
+        private static string GetPath(string fileName)
         {
             string startupPath = StartupPath();
             if (string.IsNullOrEmpty(fileName))
@@ -130,6 +121,21 @@ namespace v2rayUpgrade
                 return startupPath;
             }
             return Path.Combine(startupPath, fileName);
+        }
+
+        private static string V2rayN()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (File.Exists(GetPath("v2rayN.exe")))
+                    return "v2rayN";
+                else
+                    return "v2rayN.Desktop";
+            }
+            else
+            {
+                return "v2rayN.Desktop";
+            }
         }
     }
 }

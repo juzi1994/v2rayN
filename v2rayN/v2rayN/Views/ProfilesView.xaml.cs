@@ -1,5 +1,4 @@
 using MaterialDesignThemes.Wpf;
-using Microsoft.Win32;
 using ReactiveUI;
 using Splat;
 using System.Reactive.Disposables;
@@ -23,7 +22,7 @@ namespace v2rayN.Views
             InitializeComponent();
             lstGroup.MaxHeight = Math.Floor(SystemParameters.WorkArea.Height * 0.20 / 40) * 40;
 
-            _config = LazyConfig.Instance.Config;
+            _config = AppHandler.Instance.Config;
 
             Application.Current.Exit += Current_Exit;
             btnAutofitColumnWidth.Click += BtnAutofitColumnWidth_Click;
@@ -129,17 +128,11 @@ namespace v2rayN.Views
 
                 case EViewAction.SaveFileDialog:
                     if (obj is null) return false;
-                    SaveFileDialog fileDialog = new()
-                    {
-                        Filter = "Config|*.json",
-                        FilterIndex = 2,
-                        RestoreDirectory = true
-                    };
-                    if (fileDialog.ShowDialog() != true)
+                    if (UI.SaveFileDialog(out string fileName, "Config|*.json") != true)
                     {
                         return false;
                     }
-                    ViewModel?.Export2ClientConfigResult(fileDialog.FileName, (ProfileItem)obj);
+                    ViewModel?.Export2ClientConfigResult(fileName, (ProfileItem)obj);
                     break;
 
                 case EViewAction.AddServerWindow:
@@ -345,23 +338,15 @@ namespace v2rayN.Views
                             item2.Width = item.Width;
                             item2.DisplayIndex = displayIndex++;
                         }
+                        if (item.Name.StartsWith("to"))
+                        {
+                            if (!_config.guiItem.enableStatistics)
+                            {
+                                item2.Visibility = Visibility.Hidden;
+                            }
+                        }
                     }
                 }
-            }
-
-            if (!_config.guiItem.enableStatistics)
-            {
-                colTodayUp.Visibility =
-                colTodayDown.Visibility =
-                colTotalUp.Visibility =
-                colTotalDown.Visibility = Visibility.Hidden;
-            }
-            else
-            {
-                colTodayUp.Visibility =
-                colTodayDown.Visibility =
-                colTotalUp.Visibility =
-                colTotalDown.Visibility = Visibility.Visible;
             }
         }
 

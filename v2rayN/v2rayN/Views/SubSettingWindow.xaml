@@ -17,10 +17,9 @@
     FontFamily="{x:Static conv:MaterialDesignFonts.MyFont}"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
+    Style="{StaticResource WindowGlobal}"
     TextElement.FontFamily="{x:Static conv:MaterialDesignFonts.MyFont}"
     TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-    TextOptions.TextFormattingMode="Display"
-    TextOptions.TextRenderingMode="Auto"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <materialDesign:DialogHost
@@ -106,7 +105,7 @@
                         Width="150"
                         Binding="{Binding url}"
                         Header="{x:Static resx:ResUI.LvUrl}" />
-                    <DataGridTextColumn
+                    <DataGridCheckBoxColumn
                         Width="100"
                         Binding="{Binding enabled}"
                         Header="{x:Static resx:ResUI.LvEnabled}" />
